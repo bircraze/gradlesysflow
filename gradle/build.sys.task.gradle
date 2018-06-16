@@ -1,7 +1,7 @@
 project.ext {
-	commomAction = {
-		preExecCmd(projectDir, name, null, null)
-	}
+    commomAction = {
+        preExecCmd(projectDir, name, null, null)
+    }
 }
 
 subprojects {
@@ -42,7 +42,7 @@ task checkout {
             }
         }
 
-		preExecCmd(projectDir, name, subCmdStr.substring(1), ["csubs": subStr.substring(1)])
+        preExecCmd(projectDir, name, subCmdStr.substring(1), ["csubs": subStr.substring(1)])
     }
 }
 
@@ -53,21 +53,21 @@ task step3 {
 }
 
 def preExecCmd(wdir, taskName, selfArgsStr, extraMap) {
-	def argsArr = []
+    def argsArr = []
     def parties = project.ext.envMap["parties"].inject("") { x, y -> x + "," + y }.substring(1)
-	def envCmd = project.ext.envMap["steps"][taskName]["cmd"]
-	argsArr << "execRootCmd"
-	argsArr << "-Psubs=${parties}"
-	argsArr << "-Pcmd=${envCmd}"
-	if (null != selfArgsStr) {
-		argsArr << "-Pargs=${selfArgsStr}"
-	} else {
-		def envArgsStr = project.ext.envMap["steps"][taskName]["args"].inject("") { x, y -> x + ":::" + y }.substring(3)
-		argsArr << "-Pargs=${envArgsStr}"
-	}
-	if (null != extraMap) {
-		extraMap.each { argsArr << "-P${it.key}=${it.value}"  }
-	}
+    def envCmd = project.ext.envMap["steps"][taskName]["cmd"]
+    argsArr << "execRootCmd"
+    argsArr << "-Psubs=${parties}"
+    argsArr << "-Pcmd=${envCmd}"
+    if (null != selfArgsStr) {
+        argsArr << "-Pargs=${selfArgsStr}"
+    } else {
+        def envArgsStr = project.ext.envMap["steps"][taskName]["args"].inject("") { x, y -> x + ":::" + y }.substring(3)
+        argsArr << "-Pargs=${envArgsStr}"
+    }
+    if (null != extraMap) {
+        extraMap.each { argsArr << "-P${it.key}=${it.value}"  }
+    }
     def stepMap = project.ext.envMap["steps"][taskName]
     if (usingParallel && stepMap["parallel"] != null && stepMap["parallel"]) {
         execCmd("gradle", argsArr << "--parallel", wdir)
