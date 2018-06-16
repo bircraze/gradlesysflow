@@ -1,0 +1,32 @@
+project.ext {
+    sysEnvPrefix = "env"
+    sysEnvDiv = "_"
+    usingParallel = gradle.startParameter.isParallelProjectExecutionEnabled()
+    
+    genEnvTasks()
+}
+
+def genEnvTasks() {
+    for (each in project.ext.properties.keySet()) {
+        if (each.startsWith(project.ext.sysEnvPrefix)) {
+            genMainTask(each.split(project.ext.sysEnvDiv)[1], project.ext.properties.get(each))
+        }
+    }
+}
+
+def genMainTask(taskName, taskMap) {
+    task "${taskName}" {
+        doLast {
+            project.ext.envMap = taskMap
+            taskMap["steps"].keySet().each {
+                if (taskMap["steps"]["${it}"]["commom"]) {
+					task "${it}"
+					tasks."${it}".doLast(project.ext.commomAction)
+				}
+				tasks."${it}".execute()
+            }
+        }
+    }
+    tasks."${taskName}".group "Environment"
+    tasks."${taskName}".description "Execute: ${taskMap['steps'].keySet()}"
+}

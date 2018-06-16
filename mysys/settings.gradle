@@ -1,0 +1,6 @@
+def subPrjs = ['xxx', 'yyy', 'zzz'] 
+
+subPrjs.each {
+    include it 
+    project(":${it}").projectDir = new File("../../${it}")
+}
