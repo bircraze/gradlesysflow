@@ -1,6 +1,12 @@
-def subPrjs = ['xxx', 'yyy', 'zzz'] 
+def subPrjRoot = "subprojects"
+def subPrjs = []
+
+new File(subPrjRoot).eachDir() {
+	subPrjs << it.toString()
+}
 
 subPrjs.each {
-    include it 
-    project(":${it}").projectDir = new File("../../${it}")
+	def subPrjName = it.substring(subPrjRoot.length() + 1)
+    include subPrjName
+    project(":${subPrjName}").projectDir = new File("${it}")
 }
