@@ -1,24 +1,3 @@
 apply from: "build.env.gradle"
 apply from: "../gradle/build.sys.task.gradle"
 apply from: "../gradle/build.sys.base.gradle"
-
-
-/*
-project.ext {
-    yy = "yyy"
-}
-
-task hii {
-    doLast {
-        project.ext.zz = "zzz"
-        tasks.hii2.execute()
-    }
-}
-
-task hii2 {
-    doLast {
-        println project.ext.properties
-        println project.ext.zz
-    }
-}
-*/

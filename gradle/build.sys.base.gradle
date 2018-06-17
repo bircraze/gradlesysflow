@@ -19,10 +19,8 @@ def genMainTask(taskName, taskMap) {
         doLast {
             project.ext.envMap = taskMap
             taskMap["steps"].keySet().each {
-                if (taskMap["steps"]["${it}"]["commom"]) {
-                    task "${it}"
-                    tasks."${it}".doLast(project.ext.commomAction)
-                }
+                task "${it}"
+                tasks."${it}".doLast(project.ext.commomAction)
                 tasks."${it}".execute()
             }
         }

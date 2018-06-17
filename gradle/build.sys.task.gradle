@@ -1,79 +1,70 @@
 project.ext {
     commomAction = {
-        preExecCmd(projectDir, name, null, null)
+        preExecCmd(projectDir, name)
     }
 }
 
 subprojects {
     task execRootCmd {
         doLast {
-            def subArr = subs.split(",")
-            if (!subArr.contains(project.name)) {
+            if (!project.ext.subs.contains(project.name)) {
                 println "Ignored: " + project.name
                 return
-            }
-            if (!project.hasProperty("csubs")) {
-                execCmd(cmd, args.split(":::"), projectDir)
-                return 
             }
 
-            subArr = csubs.split(",")
-            def subCmdArr = args.split(",")
-            def index = subArr.findIndexOf { it == project.name }
-            if (index == -1) {
-                println "Ignored: " + project.name
-                return
+            def argsArr = project.ext.args.split(",")
+            def newArgsArr = [project.ext.subcmd]
+            argsArr.each {
+                if (it.split(":::")[1] == project.name) {
+                    newArgsArr << it.split(":::")[0]
+                }
+                
             }
-            execCmd(cmd, subCmdArr[index].split(":::"), projectDir)
+            execCmd(project.ext.cmd, newArgsArr, projectDir)
         }
     }
 }
 
-task checkout {
-    doLast {
-        def tagMap = project.ext.envMap["steps"][name]["tag"]
-        def subStr = ""
-        def subCmdStr = ""
-        
-        tagMap.keySet().each { tagName ->
-            tagMap[tagName].each { sub -> 
-                subStr += ("," + sub)
-                subCmdStr += ("," + "checkout:::" + tagName)
+def genArgs(taskName, subs) {
+    def argsArr = project.ext.envMap["steps"][taskName]["args"]
+    def newArgsArr = []
+    argsArr.each { arg ->
+        if (arg.contains(":::")) {
+            def pName = arg.split(":::")[1]
+            project.ext.envMap["steps"][taskName][pName].each { p ->
+                def newArg = arg.replace(":::${pName}:::", p.key)
+                p.value.each { sub -> 
+                    newArgsArr << "${newArg}:::${sub}"
+                }
+            }
+        } else {
+            subs.each { sub ->
+                newArgsArr << "${arg}:::${sub}"
             }
         }
-
-        preExecCmd(projectDir, name, subCmdStr.substring(1), ["csubs": subStr.substring(1)])
     }
+    def result = newArgsArr ? newArgsArr.inject("") { x, y -> x + "," + y }.substring(1) : ""
+
+    return result
 }
 
-task step3 {
-    doLast {
-        println 'step3 executed'
+def genSubs(taskName) {
+    def argsArr = project.ext.envMap["steps"][taskName]["args"]
+    argsArr = argsArr.findAll {
+        it.contains(":::")
     }
-}
+    if (!argsArr) {
+        return project.ext.envMap["parties"].inject("") { x, y -> x + "," + y }.substring(1)
+    }
 
-def preExecCmd(wdir, taskName, selfArgsStr, extraMap) {
-    def argsArr = []
-    def parties = project.ext.envMap["parties"].inject("") { x, y -> x + "," + y }.substring(1)
-    def envCmd = project.ext.envMap["steps"][taskName]["cmd"]
-    argsArr << "execRootCmd"
-    argsArr << "-Psubs=${parties}"
-    argsArr << "-Pcmd=${envCmd}"
-    if (null != selfArgsStr) {
-        argsArr << "-Pargs=${selfArgsStr}"
-    } else {
-        def envArgsStr = project.ext.envMap["steps"][taskName]["args"].inject("") { x, y -> x + ":::" + y }.substring(3)
-        argsArr << "-Pargs=${envArgsStr}"
+    def newParties = []
+    argsArr.each {
+        def pName = it.split(":::")[1]
+        newParties = project.ext.envMap["steps"][taskName][pName].values().inject([]) {x, y -> x + y}
     }
-    if (null != extraMap) {
-        extraMap.each { argsArr << "-P${it.key}=${it.value}"  }
-    }
-    def stepMap = project.ext.envMap["steps"][taskName]
-    if (usingParallel && stepMap["parallel"] != null && stepMap["parallel"]) {
-        execCmd("gradle", argsArr << "--parallel", wdir)
-    } else {
-        execCmd("gradle", argsArr, wdir)
-    }
+    def result = newParties ? newParties.inject("") { x, y -> x + "," + y }.substring(1) : ""
+
+    return result
 }
 
 def execCmd(cmd, argus, wdir) {
@@ -88,3 +79,23 @@ def execCmd(cmd, argus, wdir) {
     }
     println "===================================="
 }
+
+def preExecCmd(wdir, taskName) {
+    def argsArr = []
+    def envCmd = project.ext.envMap["steps"][taskName]["cmd"]
+    def envSubCmd = project.ext.envMap["steps"][taskName]["subcmd"]
+    def subs = genSubs(taskName)
+    argsArr << "execRootCmd"
+    argsArr << "-Psubs=${subs}"
+    argsArr << "-Pcmd=${envCmd}"
+    argsArr << "-Psubcmd=${envSubCmd}"
+    argsArr << "-Pargs=${genArgs(taskName, subs.split(','))}"
+    
+    def stepMap = project.ext.envMap["steps"][taskName]
+    if (usingParallel && stepMap["parallel"] != null && stepMap["parallel"]) {
+        execCmd("gradle", argsArr << "--parallel", wdir)
+    } else {
+        execCmd("gradle", argsArr, wdir)
+    }
+}
+
