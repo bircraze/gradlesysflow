@@ -10,15 +10,8 @@ project.ext {
         if (project.ext.envMap["steps"][name]["cmd"]) {
             def cmd = project.ext.envMap["steps"][name]["cmd"]
             def args = []
-            if (project.ext.envMap["steps"][name]["subcmd"]) {
-                args << project.ext.envMap["steps"][name]["subcmd"]
-            }
-            project.ext.envMap["steps"][name]["args"].each {
-                if (it) {
-                    args << it
-                }
-            }
-            execCmd(cmd, args, projectDir)
+            args << project.ext.envMap["steps"][name]["subcmd"] << project.ext.envMap["steps"][name]["args"]
+            execCmd(cmd, args.flatten() - "" - null, projectDir)
         }
     }
 
@@ -35,16 +28,11 @@ subprojects {
 
             def argsArr = project.ext.args.split(",")
             def newArgsArr = []
-            if (project.ext.subcmd) {
-                newArgsArr << project.ext.subcmd
+            newArgsArr << project.ext.subcmd
+            newArgsArr << argsArr.collect([]) {
+                (it.split(":::")[0] && it.split(":::")[1] == project.name) ? it.split(":::")[0] : ""
             }
-            argsArr.each {
-                if (it.split(":::")[0] && it.split(":::")[1] == project.name) {
-                    newArgsArr << it.split(":::")[0]
-                }
-
-            }
-            execCmd(project.ext.cmd, newArgsArr, projectDir)
+            execCmd(project.ext.cmd, newArgsArr.flatten() - "" - null, projectDir)
         }
     }
 }
@@ -67,7 +55,7 @@ def genArgs(taskName, subs) {
             }
         }
     }
-    def result = newArgsArr ? newArgsArr.inject("") { x, y -> x + "," + y }.substring(1) : ""
+    def result = newArgsArr ? newArgsArr.join(",") : ""
 
     return result
 }
@@ -78,15 +66,15 @@ def genSubs(taskName) {
         it.contains(":::")
     }
     if (!argsArr) {
-        return project.ext.envMap["parties"].inject("") { x, y -> x + "," + y }.substring(1)
+        return project.ext.envMap["parties"].join(",")
     }
 
     def newParties = []
     argsArr.each {
         def pName = it.split(":::")[1]
-        newParties = project.ext.envMap["steps"][taskName][pName].values().inject([]) {x, y -> x + y}
+        newParties << project.ext.envMap["steps"][taskName][pName].values()
     }
-    def result = newParties ? newParties.inject("") { x, y -> x + "," + y }.substring(1) : ""
+    def result = newParties ? newParties.flatten().unique().join(",") : ""
 
     return result
 }
