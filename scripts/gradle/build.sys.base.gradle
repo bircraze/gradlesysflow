@@ -3,10 +3,23 @@ project.ext {
     sysEnvDiv = "_"
     usingParallel = gradle.startParameter.isParallelProjectExecutionEnabled()
     commomAction = {
-        if (project.ext.envMap["steps"][name]["rootonly"]) {
+        if (!project.ext.envMap["steps"][name]["rootonly"]) {
+            preExecChild(name, projectDir)
             return
         }
-        preExecChild(projectDir, name)
+        if (project.ext.envMap["steps"][name]["cmd"]) {
+            def cmd = project.ext.envMap["steps"][name]["cmd"]
+            def args = []
+            if (project.ext.envMap["steps"][name]["subcmd"]) {
+                args << project.ext.envMap["steps"][name]["subcmd"]
+            }
+            project.ext.envMap["steps"][name]["args"].each {
+                if (it) {
+                    args << it
+                }
+            }
+            execCmd(cmd, args, projectDir)
+        }
     }
 
     genEnvTasks()
@@ -21,7 +34,10 @@ subprojects {
             }
 
             def argsArr = project.ext.args.split(",")
-            def newArgsArr = [project.ext.subcmd]
+            def newArgsArr = []
+            if (project.ext.subcmd) {
+                newArgsArr << project.ext.subcmd
+            }
             argsArr.each {
                 if (it.split(":::")[0] && it.split(":::")[1] == project.name) {
                     newArgsArr << it.split(":::")[0]
@@ -88,7 +104,7 @@ def execCmd(cmd, argus, wdir) {
     println "===================================="
 }
 
-def preExecChild(wdir, taskName) {
+def preExecChild(taskName, wdir) {
     def argsArr = []
     def envCmd = project.ext.envMap["steps"][taskName]["cmd"]
     def envSubCmd = project.ext.envMap["steps"][taskName]["subcmd"]
