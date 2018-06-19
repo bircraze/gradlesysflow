@@ -1,3 +1,0 @@
-apply from: "build.env.gradle"
-apply from: "../gradle/build.sys.task.gradle"
-apply from: "../gradle/build.sys.base.gradle"

@@ -1,7 +1,15 @@
 project.ext {
+    sysEnvPrefix = "env"
+    sysEnvDiv = "_"
+    usingParallel = gradle.startParameter.isParallelProjectExecutionEnabled()
     commomAction = {
-        preExecCmd(projectDir, name)
+        if (project.ext.envMap["steps"][name]["rootonly"]) {
+            return
+        }
+        preExecChild(projectDir, name)
     }
+
+    genEnvTasks()
 }
 
 subprojects {
@@ -15,10 +23,10 @@ subprojects {
             def argsArr = project.ext.args.split(",")
             def newArgsArr = [project.ext.subcmd]
             argsArr.each {
-                if (it.split(":::")[1] == project.name) {
+                if (it.split(":::")[0] && it.split(":::")[1] == project.name) {
                     newArgsArr << it.split(":::")[0]
                 }
-                
+
             }
             execCmd(project.ext.cmd, newArgsArr, projectDir)
         }
@@ -33,7 +41,7 @@ def genArgs(taskName, subs) {
             def pName = arg.split(":::")[1]
             project.ext.envMap["steps"][taskName][pName].each { p ->
                 def newArg = arg.replace(":::${pName}:::", p.key)
-                p.value.each { sub -> 
+                p.value.each { sub ->
                     newArgsArr << "${newArg}:::${sub}"
                 }
             }
@@ -80,7 +88,7 @@ def execCmd(cmd, argus, wdir) {
     println "===================================="
 }
 
-def preExecCmd(wdir, taskName) {
+def preExecChild(wdir, taskName) {
     def argsArr = []
     def envCmd = project.ext.envMap["steps"][taskName]["cmd"]
     def envSubCmd = project.ext.envMap["steps"][taskName]["subcmd"]
@@ -90,7 +98,7 @@ def preExecCmd(wdir, taskName) {
     argsArr << "-Pcmd=${envCmd}"
     argsArr << "-Psubcmd=${envSubCmd}"
     argsArr << "-Pargs=${genArgs(taskName, subs.split(','))}"
-    
+
     def stepMap = project.ext.envMap["steps"][taskName]
     if (usingParallel && stepMap["parallel"] != null && stepMap["parallel"]) {
         execCmd("gradle", argsArr << "--parallel", wdir)
@@ -99,3 +107,28 @@ def preExecCmd(wdir, taskName) {
     }
 }
 
+def genEnvTasks() {
+    for (each in project.ext.properties.keySet()) {
+        if (each.startsWith(project.ext.sysEnvPrefix)) {
+            genMainTask(each.split(project.ext.sysEnvDiv)[1], project.ext.properties.get(each))
+        }
+    }
+}
+
+def genMainTask(taskName, taskMap) {
+    task "${taskName}" {
+        doLast {
+            project.ext.envMap = taskMap
+            taskMap["steps"].keySet().each {
+                task "${it}"
+                tasks."${it}".doLast(project.ext.commomAction)
+                if (project.ext.prop("${it}ExAction")) {
+                    tasks."${it}".doLast(project.ext."${it}ExAction")
+                }
+                tasks."${it}".execute()
+            }
+        }
+    }
+    tasks."${taskName}".group "Environment"
+    tasks."${taskName}".description "Execute: ${taskMap['steps'].keySet()}"
+}
