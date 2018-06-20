@@ -31,11 +31,6 @@ project.ext {
 subprojects {
     task execRootCmd {
         doLast {
-            if (!project.ext.subs.contains(project.name)) {
-                println "Ignored: " + project.name
-                return
-            }
-
             def argsArr = project.ext.args.split(",")
             def newArgsArr = []
             newArgsArr << project.ext.subcmd
@@ -107,16 +102,16 @@ def preExecChild(stepTaskMap, wdir) {
     def envCmd = stepTaskMap["cmd"]
     def envSubCmd = stepTaskMap["subcmd"]
     def subs = genSubs(stepTaskMap)
-    argsArr << "execRootCmd"
-    argsArr << "-Psubs=${subs}"
+    argsArr << subs.split(",").collect { ":${it}:execRootCmd" }
     argsArr << "-Pcmd=${envCmd}"
     argsArr << "-Psubcmd=${envSubCmd}"
     argsArr << "-Pargs=${genArgs(stepTaskMap, subs.split(','))}"
+    argsArr << "--configure-on-demand"
 
     if (usingParallel && stepTaskMap["parallel"] != null && stepTaskMap["parallel"]) {
-        execCmd("gradle", argsArr << "--parallel", wdir)
+        execCmd("gradle", (argsArr << "--parallel").flatten(), wdir)
     } else {
-        execCmd("gradle", argsArr, wdir)
+        execCmd("gradle", argsArr.flatten(), wdir)
     }
 }
 
