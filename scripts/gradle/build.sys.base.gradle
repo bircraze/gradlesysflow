@@ -3,14 +3,24 @@ project.ext {
     sysEnvDiv = "_"
     usingParallel = gradle.startParameter.isParallelProjectExecutionEnabled()
     commomAction = {
-        if (!project.ext.envMap["steps"][name]["rootonly"]) {
-            preExecChild(name, projectDir)
+        def index = 0
+        project.ext.envMap["steps"].keySet().eachWithIndex { ele, i ->
+            if (ele == name) {
+                index = i
+            }
+        }
+        def forGroovyBugMap = project.ext.envMap["steps"].values().toArray()[index]
+        if (!forGroovyBugMap["rootonly"]) {
+            preExecChild(forGroovyBugMap, projectDir)
             return
         }
-        if (project.ext.envMap["steps"][name]["cmd"]) {
-            def cmd = project.ext.envMap["steps"][name]["cmd"]
+        println "=================================="
+        println "Exec root task: ${name}"
+        println "=================================="
+        if (forGroovyBugMap["cmd"]) {
+            def cmd = forGroovyBugMap["cmd"]
             def args = []
-            args << project.ext.envMap["steps"][name]["subcmd"] << project.ext.envMap["steps"][name]["args"]
+            args << forGroovyBugMap["subcmd"] << forGroovyBugMap["args"]
             execCmd(cmd, args.flatten() - "" - null, projectDir)
         }
     }
@@ -37,13 +47,13 @@ subprojects {
     }
 }
 
-def genArgs(taskName, subs) {
-    def argsArr = project.ext.envMap["steps"][taskName]["args"]
+def genArgs(stepTaskMap, subs) {
+    def argsArr = stepTaskMap["args"]
     def newArgsArr = []
     argsArr.each { arg ->
         if (arg.contains(":::")) {
             def pName = arg.split(":::")[1]
-            project.ext.envMap["steps"][taskName][pName].each { p ->
+            stepTaskMap[pName].each { p ->
                 def newArg = arg.replace(":::${pName}:::", p.key)
                 p.value.each { sub ->
                     newArgsArr << "${newArg}:::${sub}"
@@ -60,8 +70,8 @@ def genArgs(taskName, subs) {
     return result
 }
 
-def genSubs(taskName) {
-    def argsArr = project.ext.envMap["steps"][taskName]["args"]
+def genSubs(stepTaskMap) {
+    def argsArr = stepTaskMap["args"]
     argsArr = argsArr.findAll {
         it.contains(":::")
     }
@@ -72,7 +82,7 @@ def genSubs(taskName) {
     def newParties = []
     argsArr.each {
         def pName = it.split(":::")[1]
-        newParties << project.ext.envMap["steps"][taskName][pName].values()
+        newParties << stepTaskMap[pName].values()
     }
     def result = newParties ? newParties.flatten().unique().join(",") : ""
 
@@ -92,19 +102,18 @@ def execCmd(cmd, argus, wdir) {
     println "===================================="
 }
 
-def preExecChild(taskName, wdir) {
+def preExecChild(stepTaskMap, wdir) {
     def argsArr = []
-    def envCmd = project.ext.envMap["steps"][taskName]["cmd"]
-    def envSubCmd = project.ext.envMap["steps"][taskName]["subcmd"]
-    def subs = genSubs(taskName)
+    def envCmd = stepTaskMap["cmd"]
+    def envSubCmd = stepTaskMap["subcmd"]
+    def subs = genSubs(stepTaskMap)
     argsArr << "execRootCmd"
     argsArr << "-Psubs=${subs}"
     argsArr << "-Pcmd=${envCmd}"
     argsArr << "-Psubcmd=${envSubCmd}"
-    argsArr << "-Pargs=${genArgs(taskName, subs.split(','))}"
+    argsArr << "-Pargs=${genArgs(stepTaskMap, subs.split(','))}"
 
-    def stepMap = project.ext.envMap["steps"][taskName]
-    if (usingParallel && stepMap["parallel"] != null && stepMap["parallel"]) {
+    if (usingParallel && stepTaskMap["parallel"] != null && stepTaskMap["parallel"]) {
         execCmd("gradle", argsArr << "--parallel", wdir)
     } else {
         execCmd("gradle", argsArr, wdir)
@@ -122,7 +131,7 @@ def genEnvTasks() {
 def genMainTask(taskName, taskMap) {
     task "${taskName}" {
         doLast {
-            project.ext.envMap = taskMap
+            project.ext.envMap = taskMap.clone()
             taskMap["steps"].keySet().each {
                 task "${it}"
                 tasks."${it}".doLast(project.ext.commomAction)
