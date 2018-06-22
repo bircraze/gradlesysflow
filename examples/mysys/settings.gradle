@@ -1,12 +1,17 @@
-def subPrjRoot = "subprojects"
-def subPrjs = []
+def subPRoot = gradle.startParameter.projectProperties.subPrjRoot ? gradle.startParameter.projectProperties.subPrjRoot : "subprojects"
+def subP = gradle.startParameter.projectProperties.subPrjs ? gradle.startParameter.projectProperties.subPrjs.split(",") : []
 
-new File(subPrjRoot).eachDir() {
-    subPrjs << it.toString()
+if (!subP) {
+    def tempF = new File(subPRoot)
+    if (!tempF.exists()) {
+        return
+    }
+    tempF.eachDir() {
+        subP << it.toString().split("/")[-1]
+    }
 }
 
-subPrjs.each {
-    def subPrjName = it.substring(subPrjRoot.length() + 1)
-    include subPrjName
-    project(":${subPrjName}").projectDir = new File("${it}")
+subP.each {
+    include it
+    project(":${it}").projectDir = new File("${subPRoot}/${it}")
 }
