@@ -1,0 +1,5 @@
+project.ext {
+    syscleanExAction = {
+        println "Hi~~~ clean clean clean!"
+    }
+}

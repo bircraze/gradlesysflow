@@ -14,11 +14,21 @@ project.ext {
                 postMap << entry
             }
         }
-        return preMap + inMap + postMap 
+        return preMap + inMap + postMap
+    }
+    deepcopy = { orig -> 
+        def bos = new ByteArrayOutputStream()  
+        def oos = new ObjectOutputStream(bos)  
+        oos.writeObject(orig); oos.flush()  
+        def bin = new ByteArrayInputStream(bos.toByteArray())  
+        def ois = new ObjectInputStream(bin)  
+        return ois.readObject()  
     }
 
-    tpl_env_example = [
-        parties: genSubList(), 
+    tpl_example = [
+        alias: "mybuild",
+        applyfor: /.*(latest).*/,
+        parties: genSubList(),
         steps: [
             sysclean: [
                 rootonly: true,
@@ -37,7 +47,7 @@ project.ext {
                 cmd: "git",
                 subcmd: "checkout",
                 args: [":::tag:::"],
-                tag: "OVERRIDE" 
+                tag: ["master": genSubList()]
             ],
             hook: [
                 rootonly: true
@@ -47,8 +57,8 @@ project.ext {
                 cmd: "gradle",
                 subcmd: "myTask",
                 args: ["-Pdummy=${prop('dummy')}", "-Pver=:::ver:::", "-Petc=:::etc:::"],
-                ver: "OVERRIDE",
-                etc: "OVERRIDE"
+                ver: ["": genSubList()],
+                etc: ["": genSubList()]
             ]
         ]
     ]

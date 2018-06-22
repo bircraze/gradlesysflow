@@ -1,0 +1,35 @@
+apply from: '../../scripts/gradle/build.flow.tpl.gradle'
+
+project.ext {
+    /*
+    env_example["steps"] = replaceMap(env_example["steps"], "hook", myArr.collectEntries { [
+            "${it.join("")}build": [
+                rootonly: true
+            ]
+        ]
+    })
+    */
+
+    flow_latest = {
+        tag = [
+            tag: [
+                "morgan-1101": ["xxx"],
+                "tag123": ["zzz"]
+            ]
+        ]
+        ver = [
+            ver: [
+                "${prop('ver')}": ["xxx"]
+            ]
+        ]
+        etc = [
+            etc: [
+                "${prop('etc')}": ["yyy"]
+            ]
+        ]
+    }
+    flow_latest2 = {
+    }
+    flow_int = {
+    }
+}

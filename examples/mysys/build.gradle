@@ -1,12 +1,7 @@
-apply from: "build.env.gradle"
-apply from: "../../scripts/gradle/build.sys.base.gradle"
-
 project.ext {
-    syscleanExAction = {
-        println "Clean: ${projectDir}"
-        if (project.hasProperty("test")) {
-            println "Param: ${project.ext.test}"
-        }
-        project.delete "${projectDir}/prod"
-    }
+    myArr = [["abc"], ["def", "ghi"]] 
 }
+
+apply from: "build.flow.gradle"
+apply from: "../../scripts/gradle/build.flow.base.gradle"
+apply from: "../../scripts/gradle/build.flow.task.gradle"

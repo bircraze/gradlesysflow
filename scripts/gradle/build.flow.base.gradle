@@ -1,7 +1,7 @@
 project.ext {
-    sysEnvPrefix = "env"
+    sysTplPrefix = "tpl"
+    sysEnvPrefix = "flow"
     sysEnvDiv = "_"
-    usingParallel = gradle.startParameter.isParallelProjectExecutionEnabled()
     commomAction = {
         def index = 0
         project.ext.envMap["steps"].keySet().eachWithIndex { ele, i ->
@@ -108,7 +108,7 @@ def preExecChild(stepTaskMap, wdir) {
     argsArr << "-Pargs=${genArgs(stepTaskMap, subs.split(','))}"
     argsArr << "--configure-on-demand"
 
-    if (usingParallel && stepTaskMap["parallel"] != null && stepTaskMap["parallel"]) {
+    if (stepTaskMap["parallel"]) {
         execCmd("gradle", (argsArr << "--parallel").flatten(), wdir)
     } else {
         execCmd("gradle", argsArr.flatten(), wdir)
@@ -116,27 +116,44 @@ def preExecChild(stepTaskMap, wdir) {
 }
 
 def genEnvTasks() {
-    for (each in project.ext.properties.keySet()) {
-        if (each.startsWith(project.ext.sysEnvPrefix)) {
-            genMainTask(each.split(project.ext.sysEnvDiv)[1], project.ext.properties.get(each))
+    project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysTplPrefix) }.each { i -> 
+        project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysEnvPrefix) }.each { j ->
+            if (j ==~ project.ext."${i}"["applyfor"]) {
+                def taskName = project.ext."${i}"["alias"] + j.split(project.ext.sysEnvDiv)[1]
+                task "${taskName}" {
+                    doLast {
+                        "${j}"()
+                        project.ext.envMap = project.ext.deepcopy(project.ext."${i}")
+                        genMainTask(project.ext.envMap)
+                    }
+                }
+                tasks."${taskName}".group "[0] Flow"
+                tasks."${taskName}".description "Execute: " + project.ext."${i}"['steps'].keySet()
+            }
         }
     }
 }
 
-def genMainTask(taskName, taskMap) {
-    task "${taskName}" {
-        doLast {
-            project.ext.envMap = taskMap.clone()
-            taskMap["steps"].keySet().each {
-                task "${it}"
-                tasks."${it}".doLast(project.ext.commomAction)
-                if (project.ext.prop("${it}ExAction")) {
-                    tasks."${it}".doLast(project.ext."${it}ExAction")
-                }
-                tasks."${it}".execute()
+def overRideEnvArgs(stepTaskMap) {
+    def argsArr = stepTaskMap["args"]
+    argsArr.each { arg ->
+        if (arg.contains(":::")) {
+            def pName = arg.split(":::")[1]
+            if (project.hasProperty(pName)) {
+                stepTaskMap << project.ext."${pName}"
             }
         }
     }
-    tasks."${taskName}".group "Environment"
-    tasks."${taskName}".description "Execute: ${taskMap['steps'].keySet()}"
+}
+
+def genMainTask(taskMap) {
+    taskMap["steps"].keySet().each {
+        overRideEnvArgs(taskMap["steps"][it])
+        task "${it}"
+        tasks."${it}".doLast(project.ext.commomAction)
+        if (project.ext.prop("${it}ExAction")) {
+            tasks."${it}".doLast(project.ext."${it}ExAction")
+        }
+        tasks."${it}".execute()
+    }
 }
