@@ -1,5 +1,5 @@
 project.ext {
-    myArr = [["abc"], ["def", "ghi"]] 
+    subPrjs = ["zzz", "yyy", "xxx"] 
 }
 
 apply from: "build.flow.gradle"

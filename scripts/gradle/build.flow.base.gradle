@@ -1,4 +1,5 @@
 project.ext {
+    sysAppPrefix = "apps"
     sysTplPrefix = "tpl"
     sysEnvPrefix = "flow"
     sysEnvDiv = "_"
@@ -66,12 +67,19 @@ def genArgs(stepTaskMap, subs) {
 }
 
 def genSubs(stepTaskMap) {
+    if (stepTaskMap["subprjs"]) {
+        return stepTaskMap["subprjs"].join(",")
+    }
     def argsArr = stepTaskMap["args"]
     argsArr = argsArr.findAll {
         it.contains(":::")
     }
     if (!argsArr) {
-        return project.ext.envMap["parties"].join(",")
+        def subp = project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysAppPrefix + project.ext.sysEnvDiv) }
+        if (project.hasProperty("apps")) {
+            subp << "apps"
+        }
+        return subp.collect { project.ext."${it}" }.flatten().join(",")
     }
 
     def newParties = []
@@ -106,6 +114,10 @@ def preExecChild(stepTaskMap, wdir) {
     argsArr << "-Pcmd=${envCmd}"
     argsArr << "-Psubcmd=${envSubCmd}"
     argsArr << "-Pargs=${genArgs(stepTaskMap, subs.split(','))}"
+    if (project.hasProperty("subPrjRoot")) {
+        argsArr << "-PsubPrjRoot=${project.ext.subPrjRoot}"
+    }
+    argsArr << "-PsubPrjs=${subs}"
     argsArr << "--configure-on-demand"
 
     if (stepTaskMap["parallel"]) {
@@ -116,8 +128,8 @@ def preExecChild(stepTaskMap, wdir) {
 }
 
 def genEnvTasks() {
-    project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysTplPrefix) }.each { i -> 
-        project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysEnvPrefix) }.each { j ->
+    project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysTplPrefix + project.ext.sysEnvDiv) }.each { i -> 
+        project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysEnvPrefix + project.ext.sysEnvDiv) }.each { j ->
             if (j ==~ project.ext."${i}"["applyfor"]) {
                 def taskName = project.ext."${i}"["alias"] + j.split(project.ext.sysEnvDiv)[1]
                 task "${taskName}" {

@@ -28,7 +28,6 @@ project.ext {
     tpl_example = [
         alias: "mybuild",
         applyfor: /.*(latest).*/,
-        parties: genSubList(),
         steps: [
             sysclean: [
                 rootonly: true,
@@ -38,6 +37,7 @@ project.ext {
             ],
             reset: [
                 parallel: true,
+                subprjs: subPrjs,
                 cmd: "git",
                 subcmd: "reset",
                 args: ["--hard"]
@@ -47,7 +47,7 @@ project.ext {
                 cmd: "git",
                 subcmd: "checkout",
                 args: [":::tag:::"],
-                tag: ["master": genSubList()]
+                tag: ["master": subPrjs]
             ],
             hook: [
                 rootonly: true
@@ -57,18 +57,9 @@ project.ext {
                 cmd: "gradle",
                 subcmd: "myTask",
                 args: ["-Pdummy=${prop('dummy')}", "-Pver=:::ver:::", "-Petc=:::etc:::"],
-                ver: ["": genSubList()],
-                etc: ["": genSubList()]
+                ver: ["v9999": subPrjs],
+                etc: ["brabrabra": subPrjs]
             ]
         ]
     ]
-}
-
-def genSubList() {
-    def subArr = []
-    for (each in subprojects) {
-        subArr.add((String) each)
-    }
-    
-    return subArr.collect { it.split(":")[1].replaceAll("\'", "") }
 }
