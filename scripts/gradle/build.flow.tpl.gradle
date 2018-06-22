@@ -1,4 +1,9 @@
 project.ext {
+    sysAppPrefix = "apps"
+    sysTplPrefix = "tpl"
+    sysEnvPrefix = "flow"
+    sysEnvDiv = "_"
+
     prop = { p ->
         return properties[p] ? properties[p] : ""
     }
@@ -23,6 +28,13 @@ project.ext {
         def bin = new ByteArrayInputStream(bos.toByteArray())  
         def ois = new ObjectInputStream(bin)  
         return ois.readObject()  
+    }
+    defaultSubPrjs = {
+        def subp = project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysAppPrefix + project.ext.sysEnvDiv) }
+        if (project.hasProperty("apps")) {
+            subp << "apps"
+        }
+        return subp.collect { project.ext."${it}" }.flatten().join(",")
     }
 
     tpl_example = [

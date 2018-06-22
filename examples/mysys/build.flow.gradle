@@ -24,7 +24,7 @@ project.ext {
         ]
         etc = [
             etc: [
-                "${prop('etc')}": ["yyy"]
+                "${prop('etc')}": defaultSubPrjs()
             ]
         ]
     }

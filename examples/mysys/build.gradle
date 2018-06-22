@@ -1,4 +1,5 @@
 project.ext {
+    apps = ["zzz"]
     subPrjs = ["zzz", "yyy", "xxx"] 
 }
 

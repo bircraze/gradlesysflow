@@ -1,8 +1,4 @@
 project.ext {
-    sysAppPrefix = "apps"
-    sysTplPrefix = "tpl"
-    sysEnvPrefix = "flow"
-    sysEnvDiv = "_"
     commomAction = {
         def index = 0
         project.ext.envMap["steps"].keySet().eachWithIndex { ele, i ->
@@ -75,11 +71,7 @@ def genSubs(stepTaskMap) {
         it.contains(":::")
     }
     if (!argsArr) {
-        def subp = project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysAppPrefix + project.ext.sysEnvDiv) }
-        if (project.hasProperty("apps")) {
-            subp << "apps"
-        }
-        return subp.collect { project.ext."${it}" }.flatten().join(",")
+        return defaultSubPrjs()
     }
 
     def newParties = []
