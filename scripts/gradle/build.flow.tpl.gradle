@@ -46,8 +46,9 @@ project.ext {
                 parallel: true,
                 subprjs: it,
                 cmd: "git",
-                subcmd: "status",
-                args: [""]
+                subcmd: "log",
+                args: [":::loglv:::"],
+                loglv: ["-1": it]
             ]
         ]
     })

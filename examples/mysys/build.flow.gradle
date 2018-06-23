@@ -10,7 +10,10 @@ project.ext {
             "${prop('ver')}": ["xxx", "yyy"]
         ]
         etc = [
-            "${prop('etc')}": defaultSubPrjs()
+            "${prop('etc')}": ["yyy"]
+        ]
+        loglv = [
+            "${prop('loglv')}": ["xxx", "zzz"]
         ]
     }
 

@@ -17,13 +17,13 @@ project.ext {
         def flowSubCmd = stepTaskMap["subcmd"]
         def subs = genSubs(stepTaskMap)
         argsArr << subs.split(",").collect { ":${it}:execChildCmdLine" }
+        argsArr << "-PsubPrjs=${subs}"
         argsArr << "-Pcmd=${flowCmd}"
         argsArr << "-Psubcmd=${flowSubCmd}"
         argsArr << "-Pargs=${genArgs(stepTaskMap, subs.split(','))}"
         if (project.hasProperty("subPrjRoot")) {
             argsArr << "-PsubPrjRoot=${project.ext.subPrjRoot}"
         }
-        argsArr << "-PsubPrjs=${subs}"
         argsArr << "--configure-on-demand"
 
         if (stepTaskMap["parallel"]) {
