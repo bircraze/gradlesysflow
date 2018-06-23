@@ -1,6 +1,17 @@
 project.ext {
     apps = ["zzz"]
     subPrjs = ["zzz", "yyy", "xxx"] 
+    myArr = [["xxx", "zzz"], ["yyy"]]
 }
 
 apply from: "build.flow.gradle"
+
+task myTest {
+    doLast {
+        def testArr = [1, 2, 3]
+        println testArr.collect { it * 2 }
+        println testArr
+
+    }
+
+}

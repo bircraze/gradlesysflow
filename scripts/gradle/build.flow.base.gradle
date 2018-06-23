@@ -128,7 +128,7 @@ def genFlowTasks() {
                     doLast {
                         "${j}"()
                         project.ext.flowMap = project.ext.deepcopy(project.ext."${i}")
-                        genMainTask(project.ext.flowMap)
+                        genStepTasks(project.ext.flowMap)
                     }
                 }
                 tasks."${taskName}".group "[0] Flow"
@@ -150,9 +150,9 @@ def overrideFlowArgs(stepTaskMap) {
     }
 }
 
-def genMainTask(taskMap) {
-    taskMap["steps"].keySet().each {
-        overrideFlowArgs(taskMap["steps"][it])
+def genStepTasks(taskMap) {
+    taskMap["steps"].keySet().eachWithIndex { it, i ->
+        overrideFlowArgs(taskMap["steps"].values().toArray()[i])
         task "${it}"
         tasks."${it}".doLast(project.ext.commomAction)
         if (project.ext.prop("${it}ExAction")) {
