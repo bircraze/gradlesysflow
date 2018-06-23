@@ -144,7 +144,7 @@ def overrideFlowArgs(stepTaskMap) {
         if (arg.contains(":::")) {
             def pName = arg.split(":::")[1]
             if (project.hasProperty(pName)) {
-                stepTaskMap << project.ext."${pName}"
+                stepTaskMap << [(pName): project.ext."${pName}"]
             }
         }
     }

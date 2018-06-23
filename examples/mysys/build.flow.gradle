@@ -3,20 +3,14 @@ apply from: '../../scripts/gradle/build.flow.tpl.gradle'
 project.ext {
     flow_latest = {
         tag = [
-            tag: [
-                "morgan-1101": ["xxx"],
-                "tag123": ["zzz"]
-            ]
+            "morgan-1101": ["xxx"],
+            "tag123": ["zzz"]
         ]
         ver = [
-            ver: [
-                "${prop('ver')}": ["xxx"]
-            ]
+            "${prop('ver')}": ["xxx", "yyy"]
         ]
         etc = [
-            etc: [
-                "${prop('etc')}": defaultSubPrjs()
-            ]
+            "${prop('etc')}": defaultSubPrjs()
         ]
     }
 
