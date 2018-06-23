@@ -71,7 +71,7 @@ def genSubs(stepTaskMap) {
         it.contains(":::")
     }
     if (!argsArr) {
-        return defaultSubPrjs()
+        return defaultSubPrjStr()
     }
 
     def newParties = []

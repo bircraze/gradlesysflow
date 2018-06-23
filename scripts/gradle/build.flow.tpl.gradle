@@ -29,12 +29,15 @@ project.ext {
         def ois = new ObjectInputStream(bin)  
         return ois.readObject()  
     }
-    defaultSubPrjs = {
+    defaultSubPrjStr = {
         def subp = project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysAppPrefix + project.ext.sysEnvDiv) }
         if (project.hasProperty("apps")) {
             subp << "apps"
         }
         return subp.collect { project.ext."${it}" }.flatten().join(",")
+    }
+    defaultSubPrjs = {
+        defaultSubPrjStr().split(",")
     }
 
     tpl_example = [
