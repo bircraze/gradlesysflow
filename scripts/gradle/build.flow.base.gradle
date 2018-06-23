@@ -1,12 +1,45 @@
 project.ext {
+    execCmdLine = { cmd, argus, wdir ->
+        println "===================================="
+        println "Run cmd: ${cmd}, args: ${argus}, destDir: ${wdir}"
+        project.exec {
+            commandLine cmd
+            //commandLine "git", "fetch"
+            args argus
+            //args "origin"
+            workingDir wdir
+        }
+        println "===================================="
+    }
+    preExecChild = { stepTaskMap, wdir ->
+        def argsArr = []
+        def flowCmd = stepTaskMap["cmd"]
+        def flowSubCmd = stepTaskMap["subcmd"]
+        def subs = genSubs(stepTaskMap)
+        argsArr << subs.split(",").collect { ":${it}:execChildCmd" }
+        argsArr << "-Pcmd=${flowCmd}"
+        argsArr << "-Psubcmd=${flowSubCmd}"
+        argsArr << "-Pargs=${genArgs(stepTaskMap, subs.split(','))}"
+        if (project.hasProperty("subPrjRoot")) {
+            argsArr << "-PsubPrjRoot=${project.ext.subPrjRoot}"
+        }
+        argsArr << "-PsubPrjs=${subs}"
+        argsArr << "--configure-on-demand"
+
+        if (stepTaskMap["parallel"]) {
+            execCmdLine("gradle", (argsArr << "--parallel").flatten(), wdir)
+        } else {
+            execCmdLine("gradle", argsArr.flatten(), wdir)
+        }
+    }
     commomAction = {
         def index = 0
-        project.ext.envMap["steps"].keySet().eachWithIndex { ele, i ->
+        project.ext.flowMap["steps"].keySet().eachWithIndex { ele, i ->
             if (ele == name) {
                 index = i
             }
         }
-        def forGroovyBugMap = project.ext.envMap["steps"].values().toArray()[index]
+        def forGroovyBugMap = project.ext.flowMap["steps"].values().toArray()[index]
         if (!forGroovyBugMap["rootonly"]) {
             preExecChild(forGroovyBugMap, projectDir)
             return
@@ -18,15 +51,13 @@ project.ext {
             def cmd = forGroovyBugMap["cmd"]
             def args = []
             args << forGroovyBugMap["subcmd"] << forGroovyBugMap["args"]
-            execCmd(cmd, args.flatten() - "" - null, projectDir)
+            execCmdLine(cmd, args.flatten() - "" - null, projectDir)
         }
     }
-
-    genEnvTasks()
 }
 
 subprojects {
-    task execRootCmd {
+    task execChildCmd {
         doLast {
             def argsArr = project.ext.args.split(",")
             def newArgsArr = []
@@ -34,9 +65,13 @@ subprojects {
             newArgsArr << argsArr.collect([]) {
                 (it.split(":::")[0] && it.split(":::")[1] == project.name) ? it.split(":::")[0] : ""
             }
-            execCmd(project.ext.cmd, newArgsArr.flatten() - "" - null, projectDir)
+            execCmdLine(project.ext.cmd, newArgsArr.flatten() - "" - null, projectDir)
         }
     }
+}
+
+task genFlow {
+    genFlowTasks()
 }
 
 def genArgs(stepTaskMap, subs) {
@@ -84,51 +119,16 @@ def genSubs(stepTaskMap) {
     return result
 }
 
-def execCmd(cmd, argus, wdir) {
-    println "===================================="
-    println "Run cmd: ${cmd}, args: ${argus}, destDir: ${wdir}"
-    project.exec {
-        commandLine cmd
-        //commandLine "git", "fetch"
-        args argus
-        //args "origin"
-        workingDir wdir
-    }
-    println "===================================="
-}
-
-def preExecChild(stepTaskMap, wdir) {
-    def argsArr = []
-    def envCmd = stepTaskMap["cmd"]
-    def envSubCmd = stepTaskMap["subcmd"]
-    def subs = genSubs(stepTaskMap)
-    argsArr << subs.split(",").collect { ":${it}:execRootCmd" }
-    argsArr << "-Pcmd=${envCmd}"
-    argsArr << "-Psubcmd=${envSubCmd}"
-    argsArr << "-Pargs=${genArgs(stepTaskMap, subs.split(','))}"
-    if (project.hasProperty("subPrjRoot")) {
-        argsArr << "-PsubPrjRoot=${project.ext.subPrjRoot}"
-    }
-    argsArr << "-PsubPrjs=${subs}"
-    argsArr << "--configure-on-demand"
-
-    if (stepTaskMap["parallel"]) {
-        execCmd("gradle", (argsArr << "--parallel").flatten(), wdir)
-    } else {
-        execCmd("gradle", argsArr.flatten(), wdir)
-    }
-}
-
-def genEnvTasks() {
-    project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysTplPrefix + project.ext.sysEnvDiv) }.each { i -> 
-        project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysEnvPrefix + project.ext.sysEnvDiv) }.each { j ->
+def genFlowTasks() {
+    project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysTplPrefix + project.ext.sysFlowDiv) }.each { i -> 
+        project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysFlowPrefix + project.ext.sysFlowDiv) }.each { j ->
             if (j ==~ project.ext."${i}"["applyfor"]) {
-                def taskName = project.ext."${i}"["alias"] + j.split(project.ext.sysEnvDiv)[1]
+                def taskName = project.ext."${i}"["alias"] + j.split(project.ext.sysFlowDiv)[1]
                 task "${taskName}" {
                     doLast {
                         "${j}"()
-                        project.ext.envMap = project.ext.deepcopy(project.ext."${i}")
-                        genMainTask(project.ext.envMap)
+                        project.ext.flowMap = project.ext.deepcopy(project.ext."${i}")
+                        genMainTask(project.ext.flowMap)
                     }
                 }
                 tasks."${taskName}".group "[0] Flow"
@@ -138,7 +138,7 @@ def genEnvTasks() {
     }
 }
 
-def overRideEnvArgs(stepTaskMap) {
+def overrideFlowArgs(stepTaskMap) {
     def argsArr = stepTaskMap["args"]
     argsArr.each { arg ->
         if (arg.contains(":::")) {
@@ -152,7 +152,7 @@ def overRideEnvArgs(stepTaskMap) {
 
 def genMainTask(taskMap) {
     taskMap["steps"].keySet().each {
-        overRideEnvArgs(taskMap["steps"][it])
+        overrideFlowArgs(taskMap["steps"][it])
         task "${it}"
         tasks."${it}".doLast(project.ext.commomAction)
         if (project.ext.prop("${it}ExAction")) {

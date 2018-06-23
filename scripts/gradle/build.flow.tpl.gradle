@@ -1,45 +1,6 @@
+apply from: "../../scripts/gradle/build.flow.global.gradle"
+
 project.ext {
-    sysAppPrefix = "apps"
-    sysTplPrefix = "tpl"
-    sysEnvPrefix = "flow"
-    sysEnvDiv = "_"
-
-    prop = { p ->
-        return properties[p] ? properties[p] : ""
-    }
-    replaceMap = { srcMap, replaceKey, inMap ->
-        // println "inMap" + inMap
-        def index = srcMap.findIndexOf{it.key == replaceKey}
-        def preMap = [:]
-        def postMap = [:]
-        srcMap.eachWithIndex { entry, i ->
-            if (i < index) {
-                preMap << entry
-            } else if (i > index) {
-                postMap << entry
-            }
-        }
-        return preMap + inMap + postMap
-    }
-    deepcopy = { orig -> 
-        def bos = new ByteArrayOutputStream()  
-        def oos = new ObjectOutputStream(bos)  
-        oos.writeObject(orig); oos.flush()  
-        def bin = new ByteArrayInputStream(bos.toByteArray())  
-        def ois = new ObjectInputStream(bin)  
-        return ois.readObject()  
-    }
-    defaultSubPrjStr = {
-        def subp = project.ext.properties.keySet().findAll { it.startsWith(project.ext.sysAppPrefix + project.ext.sysEnvDiv) }
-        if (project.hasProperty("apps")) {
-            subp << "apps"
-        }
-        return subp.collect { project.ext."${it}" }.flatten().join(",")
-    }
-    defaultSubPrjs = {
-        defaultSubPrjStr().split(",")
-    }
-
     tpl_example = [
         alias: "mybuild",
         applyfor: /.*(latest).*/,

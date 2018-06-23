@@ -33,3 +33,6 @@ project.ext {
     flow_int = {
     }
 }
+
+apply from: "../../scripts/gradle/build.flow.base.gradle"
+apply from: "../../scripts/gradle/build.flow.exact.gradle"

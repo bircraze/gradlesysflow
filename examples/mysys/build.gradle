@@ -4,5 +4,3 @@ project.ext {
 }
 
 apply from: "build.flow.gradle"
-apply from: "../../scripts/gradle/build.flow.base.gradle"
-apply from: "../../scripts/gradle/build.flow.task.gradle"
