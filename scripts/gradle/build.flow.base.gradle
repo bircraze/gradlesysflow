@@ -16,7 +16,7 @@ project.ext {
         def flowCmd = stepTaskMap["cmd"]
         def flowSubCmd = stepTaskMap["subcmd"]
         def subs = genSubs(stepTaskMap)
-        argsArr << subs.split(",").collect { ":${it}:execChildCmd" }
+        argsArr << subs.split(",").collect { ":${it}:execChildCmdLine" }
         argsArr << "-Pcmd=${flowCmd}"
         argsArr << "-Psubcmd=${flowSubCmd}"
         argsArr << "-Pargs=${genArgs(stepTaskMap, subs.split(','))}"
@@ -57,7 +57,7 @@ project.ext {
 }
 
 subprojects {
-    task execChildCmd {
+    task execChildCmdLine {
         doLast {
             def argsArr = project.ext.args.split(",")
             def newArgsArr = []
