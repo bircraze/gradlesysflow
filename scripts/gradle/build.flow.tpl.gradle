@@ -9,7 +9,7 @@ project.ext {
                 rootonly: true,
                 cmd: "echo",
                 subcmd: "",
-                args: ["hi", "hi2"]
+                args: ["hi", "${prop('hi2')}"]
             ],
             reset: [
                 parallel: true,
