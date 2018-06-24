@@ -39,9 +39,9 @@ project.ext {
         ]
     ]
 
-    tpl_hacktask = deepcopy(tpl_example)
-    tpl_hacktask["alias"] = "hackmybuild"
-    tpl_hacktask["steps"] = replaceMap(tpl_hacktask["steps"], "hook", myArr.collectEntries { [
+    tpl_hackexample = deepcopy(tpl_example)
+    tpl_hackexample["alias"] = "hackmybuild"
+    tpl_hackexample["steps"] = replaceMap(tpl_hackexample["steps"], "hook", myArr.collectEntries { [
             "${it.join("")}build": [
                 parallel: true,
                 subprjs: it,
