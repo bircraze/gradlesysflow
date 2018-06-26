@@ -3,6 +3,7 @@ project.ext {
     sysTplPrefix = "tpl"
     sysFlowPrefix = "flow"
     sysFlowDiv = "_"
+    subPRoot = gradle.startParameter.projectProperties.subPrjRoot ? gradle.startParameter.projectProperties.subPrjRoot : "../../"
 
     prop = { p ->
         return properties[p] ? properties[p] : ""

@@ -11,19 +11,35 @@ project.ext {
         }
         println "===================================="
     }
+    directExecChild = { prjName, cmd, subcmd, args, wdir ->
+        def argsArr = args.split(",")
+        def newArgsArr = []
+        newArgsArr << subcmd
+        newArgsArr << argsArr.collect([]) {
+            (it.split(":::")[0] && it.split(":::")[1] == prjName) ? it.split(":::")[0] : ""
+        }
+        execCmdLine(cmd, newArgsArr.flatten() - "" - null, wdir)
+    }
     preExecChild = { stepTaskMap, wdir ->
         def argsArr = []
         def flowCmd = stepTaskMap["cmd"]
         def flowSubCmd = stepTaskMap["subcmd"]
         def subs = genSubs(stepTaskMap)
+        def flowargs = genArgs(stepTaskMap, subs.split(','))
+
+        if (stepTaskMap["direct"]) {
+            subs.split(',').each {
+                directExecChild(it, flowCmd, flowSubCmd, flowargs, "${project.ext.subPRoot}/${it}")
+            }
+            return
+        }
+
         argsArr << subs.split(",").collect { ":${it}:execChildCmdLine" }
         argsArr << "-PsubPrjs=${subs}"
         argsArr << "-Pcmd=${flowCmd}"
         argsArr << "-Psubcmd=${flowSubCmd}"
-        argsArr << "-Pargs=${genArgs(stepTaskMap, subs.split(','))}"
-        if (project.hasProperty("subPrjRoot")) {
-            argsArr << "-PsubPrjRoot=${project.ext.subPrjRoot}"
-        }
+        argsArr << "-Pargs=${flowargs}"
+        argsArr << "-PsubPrjRoot=${project.ext.subPRoot}"
         argsArr << "--configure-on-demand"
 
         if (stepTaskMap["parallel"]) {
@@ -59,13 +75,7 @@ project.ext {
 subprojects {
     task execChildCmdLine {
         doLast {
-            def argsArr = project.ext.args.split(",")
-            def newArgsArr = []
-            newArgsArr << project.ext.subcmd
-            newArgsArr << argsArr.collect([]) {
-                (it.split(":::")[0] && it.split(":::")[1] == project.name) ? it.split(":::")[0] : ""
-            }
-            execCmdLine(project.ext.cmd, newArgsArr.flatten() - "" - null, projectDir)
+            directExecChild(project.name, project.ext.cmd, project.ext.subcmd, project.ext.args, projectDir)
         }
     }
 }
